@@ -17,6 +17,7 @@
 # ##### END GPL LICENSE BLOCK #####
 #
 # Copyright (C) 2016  Vegard Nossum <vegard.nossum@gmail.com>
+# At https://github.com/vegard/blender-lba
 
 import io
 import struct
