@@ -21,11 +21,13 @@
 import copy
 import math
 import os
+import sys
 import struct
 import webbrowser
 
 import maya.api.OpenMaya as OpenMaya
 import pymel.core as pm
+import maya.OpenMayaMPx as OpenMayaMPx
 
 from body_info import body_names
 from hqrreader import HQRReader
@@ -38,30 +40,36 @@ WORLD_SCALE = 0.15
 LINE_RADIUS = 0.25
 LINE_RESOLUTION = 3
 SPHERE_RESOLUTION = 10
-IMAGE_PATH = ''
 REPO_URL = 'https://github.com/b-tuma/LBA2Maya'
 resources = []
 lba_path = ''
 palette = []
 body_file = None
 anim_file = None
-
-if pm.menu(menu_obj, label=menu_label, exists=True, parent=main_window):
-    pm.deleteUI(pm.menu(menu_obj, e=True, deleteAllItems=True))
-
-lba_importer_menu = pm.menu(menu_obj, label=menu_label, parent=main_window, tearOff=True)
-
-pm.menuItem(label='Select LBA2 Folder...', command='load_lba2_folder()')
-import_menu = pm.menuItem(label="Import Model", command='open_model_importer()', enable=False)
-pm.menuItem(divider=True)
-pm.menuItem(label="Open on GitHub", image=IMAGE_PATH, command='about()')
+import_menu = None
+lba_importer_menu = None
 
 
-def about():
+def create_menus():
+    print(os.path.dirname(os.path.realpath(sys.argv[0])))
+    global lba_importer_menu
+    global import_menu
+    if pm.menu(menu_obj, label=menu_label, exists=True, parent=main_window):
+        pm.deleteUI(pm.menu(menu_obj, e=True, deleteAllItems=True))
+
+    lba_importer_menu = pm.menu(menu_obj, label=menu_label, parent=main_window, tearOff=True)
+
+    pm.menuItem(label='Select LBA2 Folder...', command=load_lba2_folder)
+    import_menu = pm.menuItem(label="Import Model", command=open_model_importer, enable=False)
+    pm.menuItem(divider=True)
+    pm.menuItem(label="Open on GitHub", image='menuIconHelp.png', command=about)
+
+
+def about(*args):
     webbrowser.open(REPO_URL)
 
 
-def open_model_importer():
+def open_model_importer(*args):
     def palette_change(*args):
         settings.use_palette = palette_checkbox.getValue()
 
@@ -126,7 +134,7 @@ def open_model_importer():
     pm.showWindow(window)
 
 
-def load_lba2_folder():
+def load_lba2_folder(*args):
     global lba_path
     global palette
     global resources
@@ -1010,7 +1018,6 @@ def anim_importer(bones, animations, loading_box):
             if lba_anim.num_boneframes <= b:
                 add_key(bones[b], origin_bones[b], time, True, True)
             else:
-                print(len(lba_anim.keyframes[0].boneframes))
                 is_rotate = True if lba_anim.keyframes[0].boneframes[b].bone_type == 0 else False
                 if b != 0:
                     add_key(bones[b], origin_bones[b], time, not is_rotate, is_rotate)
@@ -1082,7 +1089,6 @@ def create_materials(model_materials):
     for shading_engine in pm.ls(type=pm.nt.ShadingEngine):
         if len(shading_engine):
             for material in shading_engine.surfaceShader.listConnections():
-                print(str(material))
                 if 'palette' in str(material):
                     current_materials.append(int(filter(str.isdigit, str(material))))
 
@@ -1164,3 +1170,16 @@ def import_model(body_index, settings, loading_box):
                             return
         else:
             pm.progressWindow(loading_box, endProgress=1)
+
+
+# ##### Maya Plugin Requirements ##### #
+
+# Initialize the script plug-in
+def initializePlugin(mobject):
+    mplugin = OpenMayaMPx.MFnPlugin(mobject, "Bruno Tuma", "1.0")
+    create_menus()
+
+# Uninitialize the script plug-in
+def uninitializePlugin(mobject):
+    mplugin = OpenMayaMPx.MFnPlugin(mobject)
+    pm.deleteUI(lba_importer_menu)
