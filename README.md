@@ -23,7 +23,7 @@ I tried to make this plug-in as intuitive as I could, but here are some instruct
 
 There are some options there that can be messed with, so it's important to know about the inner workings of this plugin:
 
-Due to the low resolution displays used by the time this game was released, they could use simple pixel lines to represent thin objects, and aparently plain circles to represent round objects, I had to translate this ingenious techniques to make it work by creating spheres instead of circles, and cylinders instead of lines.
+Due to the low resolution displays used by the time this game was released, they could use simple pixel lines to represent thin objects, and apparently plain circles to represent round objects, I had to translate this ingenious techniques to make it work by creating spheres instead of circles, and cylinders instead of lines.
 You can tweak the line and sphere generator values, but I believe the current settings may be good enough.
 
 ### Special Thanks
