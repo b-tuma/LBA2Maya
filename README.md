@@ -3,6 +3,8 @@ Autodesk Maya 2020 plug-in to import LBA2 (Little Big Adventure 2) models and an
 
 **Requires** the game data! Buy it from [gog.com](https://www.gog.com/game/little_big_adventure_2)
 
+![alt text](https://raw.githubusercontent.com/b-tuma/LBA2Maya/master/importer.gif "fun stuff")
+
 ## Installation
 
 There are multiple ways to install a Maya plug-in, I believe this may be the easiest one:
