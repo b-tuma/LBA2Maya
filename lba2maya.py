@@ -18,12 +18,15 @@
 #
 # Copyright (C) 2021  Bruno Tuma <bruno.tuma@outlook.com>
 
-import maya.api.OpenMaya as OpenMaya
-import os
-import math
-import struct
 import copy
+import math
+import os
+import struct
+import webbrowser
+
+import maya.api.OpenMaya as OpenMaya
 import pymel.core as pm
+
 from body_info import body_names
 from hqrreader import HQRReader
 
@@ -35,9 +38,10 @@ WORLD_SCALE = 0.15
 LINE_RADIUS = 0.25
 LINE_RESOLUTION = 3
 SPHERE_RESOLUTION = 10
+IMAGE_PATH = ''
+REPO_URL = 'https://github.com/b-tuma/LBA2Maya'
 resources = []
 lba_path = ''
-folderLoaded = False
 palette = []
 body_file = None
 anim_file = None
@@ -50,11 +54,11 @@ lba_importer_menu = pm.menu(menu_obj, label=menu_label, parent=main_window, tear
 pm.menuItem(label='Select LBA2 Folder...', command='load_lba2_folder()')
 import_menu = pm.menuItem(label="Import Model", command='open_model_importer()', enable=False)
 pm.menuItem(divider=True)
-pm.menuItem(label="About", command='about()')
+pm.menuItem(label="Open on GitHub", image=IMAGE_PATH, command='about()')
 
 
 def about():
-    print("about")
+    webbrowser.open(REPO_URL)
 
 
 def open_model_importer():
@@ -77,7 +81,8 @@ def open_model_importer():
         settings.line_radius = line_radius_checkbox.getValue()
         settings.line_resolution = line_res_checkbox.getValue()
         settings.sphere_resolution = sphere_res_checkbox.getValue()
-        loading_box = pm.progressWindow(title="LBA2 Model Generator", status="Starting...", isInterruptable=False, progress=0)
+        loading_box = pm.progressWindow(title="LBA2 Model Generator", status="Starting...", isInterruptable=False,
+                                        progress=0)
         import_model(scroll_list.getSelectIndexedItem()[0] - 1, settings, loading_box)
         pm.deleteUI(window)
 
@@ -123,7 +128,6 @@ def open_model_importer():
 
 def load_lba2_folder():
     global lba_path
-    global folderLoaded
     global palette
     global resources
     global import_menu
@@ -147,13 +151,10 @@ def load_lba2_folder():
         pm.informBox("Incorrect Folder", "File ANIM.HQR not found.")
         return
 
-    if folderLoaded:
-        print("reset variables")
-    folderLoaded = True
     lba_path = directory[0]
-    print("Folder \"" + lba_path + "\" has been loaded.")
     # Read RESS.HQR relevant entries
-    loading_box = pm.progressWindow(title="LBA2 Model Generator", status="Opening Folder...", isInterruptable=False, progress=0)
+    loading_box = pm.progressWindow(title="LBA2 Model Generator", status="Opening Folder...", isInterruptable=False,
+                                    progress=0)
     ress_file = HQRReader(lba_path + "/RESS.HQR")
     pm.progressWindow(loading_box, edit=True, status="Loading Palette...", progress=10)
     palette = load_palette(ress_file[0])
@@ -166,21 +167,18 @@ def load_lba2_folder():
 # Read palette entry from RESS.HQR
 def load_palette(entry):
     r = EntryReader(entry)
-
     colors = []
     for i in range(256):
         red = r.u8()
         green = r.u8()
         blue = r.u8()
         colors.append((red, green, blue))
-
     return colors
 
 
 # Read characters information entry from RESS.HQR
 def load_information(entry, loading_box):
     r = EntryReader(entry)
-
     _resources = []
     while True:
         ress = Resource()
@@ -190,7 +188,7 @@ def load_information(entry, loading_box):
             break
 
     for i in range(len(_resources)):
-        pm.progressWindow(loading_box, edit=True, progress=20 + math.floor((80.0/len(_resources))*i))
+        pm.progressWindow(loading_box, edit=True, progress=20 + math.floor((80.0 / len(_resources)) * i))
         r.goto(_resources[i].offset)
         if i != len(_resources) - 1:
             while r.currentIndex < _resources[i + 1].offset - 1:
@@ -204,8 +202,6 @@ def load_information(entry, loading_box):
                     if body.collisionBoxFlag == 1:
                         r.skip(13)
                     _resources[i].bodies.append(body)
-                    print("bodyIndex: " + str(body.index) + " dataSize: " + str(body.dataSize) + " realIndex: " + str(
-                        body.realIndex) + " coll: " + str(body.collisionBoxFlag))
                 else:  # is Anim
                     anim = RessAnim()
                     anim.index = r.u16()
@@ -213,8 +209,6 @@ def load_information(entry, loading_box):
                     anim.realIndex = r.u16()
                     r.skip(anim.dataSize - 3)
                     _resources[i].animations.append(anim)
-                    print("animIndex: " + str(anim.index) + " realIndex: " + str(anim.realIndex) + " dataSize: " +
-                          str(anim.dataSize))
                 if i == len(_resources) - 1:
                     break
         else:
@@ -423,15 +417,15 @@ class UVGroup(object):
 
 class BoneframeCanFall(object):
     boneframe = []
-    canFall = False
+    can_fall = False
 
     def __init__(self):
         pass
 
 
 class Boneframe(object):
-    hasBothTypes = False
-    boneType = 0
+    has_both_types = False
+    bone_type = 0
     vector = []
 
     def __init__(self):
@@ -443,7 +437,7 @@ class Keyframe(object):
     x = 0
     y = 0
     z = 0
-    canFall = False
+    can_fall = False
     boneframes = []
 
     def __init__(self):
@@ -451,9 +445,9 @@ class Keyframe(object):
 
 
 class Anim(object):
-    numKeyframes = 0
-    numBoneframes = 0
-    loopFrame = 0
+    num_keyframes = 0
+    num_boneframes = 0
+    loop_frame = 0
     unk1 = 0
 
     def __init__(self):
@@ -501,9 +495,6 @@ def read_lba2_model(lm2):
     bones = []
     for i in range(bones_size):
         bone = OriginalBone()
-        # Se o parent tiver que ser zero... mas acho que nao!
-        # boneint = rawBones[index]
-        # bone.parent = 0 if boneint == 65535 else boneint + 1
         bone.parent = r.u16()
         bone.vertex = r.u16()
         bone.unk1 = r.u16()
@@ -567,7 +558,6 @@ def read_lba2_model(lm2):
         normal.z = r.s16() * WORLD_SCALE
         normal.unk1 = r.u16()
         normals.append(normal)
-        # Print dos normals
         """
         print(
             "x: " + str(normal.x) +
@@ -682,7 +672,6 @@ def read_lba2_model(lm2):
     return lba2_model
 
 
-# Funcao para carregar um poligono do .lm2
 def load_polygon(data, offset, render_type, block_size):
     data.goto(offset)  # is it needed?
     poly = Polygon()
@@ -724,21 +713,21 @@ def load_polygon(data, offset, render_type, block_size):
 
 def bone_generator(source_bones, source_verts):
     bone_count = len(source_bones)
-    gene_bones = []
+    maya_bones = []
     bones = [None] * bone_count
-    # Prepara bones
+    # setup bones
     for i in range(bone_count):
         g_bone = GeneratedBone()
         bone = source_bones[i]
         vert = source_verts[bone.vertex]
         g_bone.parent = bone.parent
         g_bone.pos = (vert.x, vert.y, vert.z)
-        gene_bones.append(g_bone)
+        maya_bones.append(g_bone)
 
     created_bones = 0
     while created_bones != bone_count:
         for i in range(bone_count):
-            bone = gene_bones[i]
+            bone = maya_bones[i]
             if bone.created is True:
                 continue
             if bone.parent > 1000:
@@ -748,10 +737,10 @@ def bone_generator(source_bones, source_verts):
                 bone.created = True
                 created_bones += 1
             else:
-                # Procura se existe parent criado
-                parent_bone = gene_bones[bone.parent]
+                # look if parent has been already created
+                parent_bone = maya_bones[bone.parent]
                 if parent_bone.created is True:
-                    # tem bone parent
+                    # has bone parent
                     pm.select(bones[bone.parent])
                     bn = pm.joint(p=bone.pos, name='joint' + str(i), rad=0.2)
                     bn.setRotationOrder('YZX', True)
@@ -814,9 +803,8 @@ def mesh_generator(source_verts, source_polys, source_norms, materials, source_b
         mesh.setVertexNormal(normal, i, space)
 
     if settings.use_rigging:
-        # arrumar aqui o skinning
         cluster = pm.skinCluster(gen_bones[0], py_obj, tsb=True, mi=1, hmf=1.0, dr=10, nw=0)
-        # criar grupos de vertices
+        # create vertex groups
         vertex_groups = []
         for i in range(len(source_bones)):
             if i != 0:
@@ -826,7 +814,7 @@ def mesh_generator(source_verts, source_polys, source_norms, materials, source_b
                 if source_verts[j].bone == i:
                     group.append(j)
             vertex_groups.append(group)
-        # setar influencias
+        # set influences
         transform_zeros = []
         for i in range(len(source_bones)):
             value = [gen_bones[i], 0]
@@ -834,7 +822,7 @@ def mesh_generator(source_verts, source_polys, source_norms, materials, source_b
         for i in range(len(vertex_groups)):
             group = vertex_groups[i]
             pm.select(clear=True)
-            # seleciona os vertices
+            # select vertices
             for j in range(len(group)):
                 pm.select(py_obj.vtx[group[j]], add=True)
             for j in range(len(transform_zeros)):
@@ -843,7 +831,6 @@ def mesh_generator(source_verts, source_polys, source_norms, materials, source_b
     return mesh.name()
 
 
-# Gerador de esferas
 def sphere_generator(source_sphrs, source_verts, gen_bones, settings):
     spheres = []
     for i in range(len(source_sphrs)):
@@ -874,7 +861,6 @@ def sphere_generator(source_sphrs, source_verts, gen_bones, settings):
     return spheres
 
 
-# Gerador de linhas
 def line_generator(source_lines, source_verts, gen_bones, settings):
     lines = []
     for i in range(len(source_lines)):
@@ -923,20 +909,18 @@ def line_generator(source_lines, source_verts, gen_bones, settings):
 def read_lba2_anim(anm):
     r = EntryReader(anm)
     anim = Anim()
-    anim.numKeyframes = r.u16()
-    anim.numBoneframes = r.u16()
-    anim.loopFrame = r.u16()
+    anim.num_keyframes = r.u16()
+    anim.num_boneframes = r.u16()
+    anim.loop_frame = r.u16()
     anim.unk1 = r.u16()
     anim.keyframes = []
-    # print(anm)
-    # print(anim.numKeyframes)
-    for i in range(anim.numKeyframes):
+    for i in range(anim.num_keyframes):
         keyframe = Keyframe()
         keyframe.length = r.u16()
         keyframe.x = r.s16() * WORLD_SCALE
         keyframe.y = r.s16() * WORLD_SCALE
         keyframe.z = r.s16() * WORLD_SCALE
-        keyframe.canFall = False
+        keyframe.can_fall = False
         keyframe.boneframes = []
         """
         print(
@@ -945,11 +929,11 @@ def read_lba2_anim(anm):
             ", y: " + str(keyframe.y) +
             ", z: " + str(keyframe.z))
         """
-        for j in range(anim.numBoneframes):
+        for j in range(anim.num_boneframes):
             bf_return = load_boneframe(r)
             boneframe = bf_return[0]
             can_fall = bf_return[1]
-            keyframe.canFall = keyframe.canFall or can_fall
+            keyframe.can_fall = keyframe.can_fall or can_fall
             keyframe.boneframes.append(boneframe)
         anim.keyframes.append(keyframe)
     return anim
@@ -957,7 +941,7 @@ def read_lba2_anim(anm):
 
 def load_boneframe(reader):
     boneframe = Boneframe()
-    boneframe.boneType = reader.s16()
+    boneframe.bone_type = reader.s16()
     can_fall = False
     multiplier = 360. / 4096.
 
@@ -965,8 +949,7 @@ def load_boneframe(reader):
     y = reader.s16()
     z = reader.s16()
 
-    # print("values - X: " + str(x) + " Y: " + str(y) + " Z: " + str(z))
-    if boneframe.boneType == 0:
+    if boneframe.bone_type == 0:
         boneframe.vector = (
             (multiplier * x),
             (multiplier * y),
@@ -1011,69 +994,67 @@ def anim_importer(bones, animations, loading_box):
     if anim_file is None:
         anim_file = HQRReader(lba_path + "/ANIM.HQR")
     clips_list = ""
-    # lista com arquivos
 
     origin_bones = []
     for i in range(len(bones)):
         origin_bones.append(bones[i].getTranslation())
     current_time = 0
     for i in range(len(animations)):
-        pm.progressWindow(loading_box, edit=True, progress=50 + math.floor((50.0/len(animations))*i))
+        pm.progressWindow(loading_box, edit=True, progress=50 + math.floor((50.0 / len(animations)) * i))
         lba_anim = read_lba2_anim(anim_file[animations[i].realIndex])
         cut_t = -1
         time = current_time
         start_t = time * 0.3
-        # adiciona keys pro primeiro frame
+        # add first frame keys
         for b in range(len(bones)):
-            if lba_anim.numBoneframes <= b:
+            if lba_anim.num_boneframes <= b:
                 add_key(bones[b], origin_bones[b], time, True, True)
             else:
                 print(len(lba_anim.keyframes[0].boneframes))
-                is_rotate = True if lba_anim.keyframes[0].boneframes[b].boneType == 0 else False
+                is_rotate = True if lba_anim.keyframes[0].boneframes[b].bone_type == 0 else False
                 if b != 0:
                     add_key(bones[b], origin_bones[b], time, not is_rotate, is_rotate)
-        # processa um bone de cada vez (com seus rotations e translations)
         for b in range(len(bones)):
             prev_v = [0, 0, 0]
             bone = bones[b]
             time = current_time
-            if b >= lba_anim.numBoneframes:
-                continue  # pula bone se nao houver boneframe
-            # quantos frames essa anim tem, se o loopframe for diferente do ultimo frame adiciona 1 frame a mais
-            length_frames = lba_anim.numKeyframes + 1 if lba_anim.loopFrame != (
-                    lba_anim.numKeyframes - 1) else lba_anim.numKeyframes
+            if b >= lba_anim.num_boneframes:
+                continue  # skip bone if there are no boneframes
+            # how many frames this anim has, if the loopframe is different from the last frame add 1 extra frame.
+            length_frames = lba_anim.num_keyframes + 1 if lba_anim.loop_frame != (
+                    lba_anim.num_keyframes - 1) else lba_anim.num_keyframes
             root_x = 0
             root_y = 0
             root_z = 0
-            # processa as curvas simultaneamente, nao uma de cada vez!
+            # process the curves simultaneously, it has to be this way!
             for d in range(length_frames):
                 index = d
                 last_key = False
-                if d == length_frames - 1:  # se for ultimo frame
-                    index = lba_anim.loopFrame  # ultimo frame sempre o loopframe
+                if d == length_frames - 1:  # if it's the last frame
+                    index = lba_anim.loop_frame  # last frame is always the loopframe
                     last_key = True
                 boneframe = lba_anim.keyframes[index].boneframes[b]
                 time += lba_anim.keyframes[index].length / 10. if d != 0 else 0
-                if d == lba_anim.loopFrame and cut_t == -1 and d != 0:
+                if d == lba_anim.loop_frame and cut_t == -1 and d != 0:
                     cut_t = time * 0.3
                 time_string = str((time / 100.)) + 'sec'
                 calc_v, prev_v = rotation_calculator(prev_v, boneframe.vector)
                 bone_vector = boneframe.vector
                 if b == 0:
-                    boneframe.boneType = 0
+                    boneframe.bone_type = 0
                     root_x += lba_anim.keyframes[index].x
                     root_y += lba_anim.keyframes[index].y
                     root_z += lba_anim.keyframes[index].z
                     bone_vector = (root_x, root_y, root_z)
 
-                if boneframe.boneType == 0:
+                if boneframe.bone_type == 0:
                     pm.setKeyframe(bone, t=time_string, at='rotateX', v=calc_v[0],
                                    ott=('step' if last_key is True else 'linear'), itt='linear')
                     pm.setKeyframe(bone, t=time_string, at='rotateY', v=calc_v[1],
                                    ott=('step' if last_key is True else 'linear'), itt='linear')
                     pm.setKeyframe(bone, t=time_string, at='rotateZ', v=calc_v[2],
                                    ott=('step' if last_key is True else 'linear'), itt='linear')
-                if boneframe.boneType != 0 or b == 0:
+                if boneframe.bone_type != 0 or b == 0:
                     pm.setKeyframe(bone, t=time_string, at='translateX', v=bone_vector[0] + origin_bones[b][0],
                                    ott=('step' if last_key is True else 'linear'), itt='linear')
                     pm.setKeyframe(bone, t=time_string, at='translateY', v=bone_vector[1] + origin_bones[b][1],
@@ -1096,7 +1077,7 @@ def anim_importer(bones, animations, loading_box):
 
 
 def create_materials(model_materials):
-    # Verify if there are palette materials
+    # verify if there are palette materials
     current_materials = []
     for shading_engine in pm.ls(type=pm.nt.ShadingEngine):
         if len(shading_engine):
@@ -1105,7 +1086,7 @@ def create_materials(model_materials):
                 if 'palette' in str(material):
                     current_materials.append(int(filter(str.isdigit, str(material))))
 
-    # Create a material for each one of the palette values not added yet
+    # create a material for each one of the palette values not added yet
     new_materials = [x for x in model_materials if x not in current_materials]
     for i in range(len(new_materials)):
         lba_color = palette[2 + new_materials[i] * 16]
