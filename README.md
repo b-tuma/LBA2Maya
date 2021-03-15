@@ -28,6 +28,13 @@ There are some options there that can be messed with, so it's important to know 
 Due to the low resolution displays used by the time this game was released, they could use simple pixel lines to represent thin objects, and apparently plain circles to represent round objects, I had to translate this ingenious techniques to make it work by creating spheres instead of circles, and cylinders instead of lines.
 You can tweak the line and sphere generator values, but I believe the current settings may be good enough.
 
+## TODO
+
+* Fix some rotation issues
+* Add a global scale setting
+* find a better way to organize the imported mesh and joints
+
+
 ### Special Thanks
 * This plugin makes use of [@vegard](https://github.com/vegard)'s .HQR reader from his [LBA1 to Blender Importer](https://github.com/vegard/blender-lba).
 * The character names list was provided by *Battler* in this [wiki page](http://lbafileinfo.kazekr.net/index.php?title=LBA2:Body.hqr).
