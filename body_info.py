@@ -1,6 +1,7 @@
 # coding=utf-8
 # Information provided by: Battler
 # At http://lbafileinfo.kazekr.net/index.php?title=LBA2:Body.hqr
+
 body_names = ['Twinsen without tunic model',
               'Twinsen with tunic model',
               'Twinsen with tunic and sword model',
